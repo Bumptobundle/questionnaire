@@ -460,29 +460,53 @@
         if (!go) return;
       }
       var summary = buildSummary();
-      var copied = false;
-      try {
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          navigator.clipboard.writeText(summary);
-          copied = true;
-        }
-      } catch (e) {}
+      function copyAnswers() {
+        try {
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(summary);
+            return true;
+          }
+        } catch (e) {}
+        return false;
+      }
+      var copied = copyAnswers();
+
+      /* Long mailto URLs silently fail in many browsers, so only embed the
+         full answers when the URL stays comfortably small. */
+      var fullBody = encodeURIComponent(summary);
+      var bodyIsFull = fullBody.length <= 1400;
+      var mailBody = bodyIsFull ? summary :
+        'Hi Niki,\n\nMy questionnaire answers are pasted below.\n\n' +
+        '(Paste here - your answers are already copied to your clipboard.)\n';
       var mailto = 'mailto:' + NIKI_EMAIL +
         '?subject=' + encodeURIComponent(SUBJECT) +
-        '&body=' + encodeURIComponent(summary);
+        '&body=' + encodeURIComponent(mailBody);
+
+      var stepText = bodyIsFull ?
+        'This opens an email to Niki with your answers filled in. Just press Send.' :
+        'This opens an email to Niki with the subject line ready. Your answers are copied to your clipboard, so paste them into the email and press Send.';
 
       var wrap = document.querySelector('.wrap');
       wrap.innerHTML =
         '<div class="card finish-screen">' + SPRIG +
         '<h2>Thank you' + (state.name.trim() ? ', ' + esc(state.name.trim().split(' ')[0]) : '') + '</h2>' +
         '<p>Your answers are ready to go. One last step:</p>' +
-        '<p style="margin-top:18px"><a class="btn btn-primary" style="text-decoration:none;display:inline-block" href="' + mailto.replace(/"/g, '&quot;') + '">Open email and press Send</a></p>' +
-        '<p class="soft" style="margin-top:16px">This opens your email app with everything filled in for Niki. Just press Send.' +
-        (copied ? '<br>Your answers are also copied to your clipboard, so if the email ever opens incomplete, simply paste and send.' : '') + '</p>' +
-        '<p class="tiny" style="margin-top:14px">Staying anonymous? Sending from your personal email will still show your email address. If you\u2019d rather it didn\u2019t, paste your copied answers into an email from any account you like, to ' + NIKI_EMAIL + '.</p>' +
+        '<p style="margin-top:18px"><a class="btn btn-primary" style="text-decoration:none;display:inline-block" href="' + mailto.replace(/"/g, '&quot;') + '">Open email to Niki</a></p>' +
+        '<p class="soft" style="margin-top:16px">' + stepText + '</p>' +
+        '<p class="soft">If the button does nothing on your device, no stress: open your email app yourself, start a message to <strong>' + NIKI_EMAIL + '</strong>, paste, and send.</p>' +
+        '<div style="text-align:left;margin-top:20px">' +
+        '<div class="eyebrow">Your answers' + (copied ? ' \u2014 copied to your clipboard' : '') + '</div>' +
+        '<div class="transcript" style="max-height:220px;overflow-y:auto" id="summary-box">' + esc(summary) + '</div>' +
+        '<p style="margin-top:10px;text-align:center"><button class="btn btn-secondary" id="copy-answers-btn">Copy my answers again</button></p>' +
+        '</div>' +
+        '<p class="tiny" style="margin-top:14px">Staying anonymous? Sending from your personal email will still show your email address. If you\u2019d rather it didn\u2019t, paste your answers into an email from any account you like, to ' + NIKI_EMAIL + '.</p>' +
         '<p style="margin-top:20px"><button class="btn btn-ghost" id="back-btn">Go back to my answers</button></p>' +
         '</div>' + footer();
       document.getElementById('back-btn').addEventListener('click', function () { renderForm(encoded); });
+      document.getElementById('copy-answers-btn').addEventListener('click', function () {
+        var b = document.getElementById('copy-answers-btn');
+        b.textContent = copyAnswers() ? 'Copied \u2713' : 'Please select the text above and copy it';
+      });
       window.scrollTo(0, 0);
     });
   }
